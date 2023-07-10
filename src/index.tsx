@@ -5,28 +5,34 @@ import { runAppleScript } from 'run-applescript'
 export default function Command() {
   const openChrome = async () => {
     try {
-      runAppleScript(`
+      await runAppleScript(`
       tell application "Google Chrome"
-        activate
-        set currentTabIndex to active tab index of front window
-        set numberOfTabs to count tabs of front window
-        set targetURL to "https://chat.openai.com/"
+      set allWindows to every window
+      set originalTab to active tab of front window
+      set originalTabIndex to active tab index of front window
+      set urlExists to false
+      repeat with currentWindow in allWindows
+          set allTabs to every tab of currentWindow
+          repeat with currentTab in allTabs
+              if URL of currentTab contains "chat.openai.com" then
+                  set urlExists to true
+                  exit repeat
+              end if
+          end repeat
+      end repeat
+      if urlExists is false then
+          tell front window
+              make new tab with properties {URL:"https://chat.openai.com"}
+          end tell
+      end if
+      set active tab index of front window to originalTabIndex
+  end tell
 
-        repeat with i from 1 to numberOfTabs
-          if URL of tab i of front window is targetURL then
-            set active tab index of front window to i
-            delay 2
-            set active tab index of front window to currentTabIndex
-            exit repeat
-          end if
-        end repeat
-      end tell
+      -- delay 1 -- wait a moment for Google Chrome to activate
 
-      delay 1 -- wait a moment for Google Chrome to activate
-
-      tell application "System Events"
-          keystroke "g" using {command down, shift down}
-      end tell
+      -- tell application "System Events"
+          -- keystroke "g" using {command down, shift down}
+      -- end tell
     `)
       closeMainWindow({ clearRootSearch: true });
     } catch (error) {
